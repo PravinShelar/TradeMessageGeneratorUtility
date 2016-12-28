@@ -22,7 +22,19 @@ namespace TradeMessageGenerator
             //Invoked by a automation script
             if (args != null && args.Length > 0)
             {
-                GenerateTradeMessage(args);
+                //GenerateTradeMessage(args);
+                if (args[0] == "Generate")
+                {
+                    if (Directory.Exists(AppSettings.DirectoryName))
+                    {
+                        TradeMessage tMsg = new TradeMessage();
+                        tMsg.GenerateCombination();
+                    }
+                    else
+                    {
+                        // MessageBox.Show("Invalid Command Line Argument.");
+                    }
+                }
             }
             else
             {
