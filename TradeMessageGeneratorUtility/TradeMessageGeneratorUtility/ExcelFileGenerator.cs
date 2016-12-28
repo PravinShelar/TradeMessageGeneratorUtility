@@ -16,7 +16,7 @@ namespace TradeMessageGenerator
 
         #region Public Static Methods
 
-        public static bool CreateExcel(DataSet ds,string fullFileName)
+        public static bool CreateExcel(DataSet ds, string fullFileName, string useCaseHeader)
         {
             Microsoft.Office.Interop.Excel.Application excelApp;
             Microsoft.Office.Interop.Excel.Workbook excelWorkbook;
@@ -41,25 +41,35 @@ namespace TradeMessageGenerator
                     excelWorksheet = excelWorkbook.Sheets.Add();
                     excelWorksheet.Name = table.TableName;
 
+                    int rowStartingCell = 4;
+
                     for (int i = 1; i < table.Columns.Count + 1; i++)
                     {
-                        excelWorksheet.Cells[1, i] = table.Columns[i - 1].ColumnName;
+                        excelWorksheet.Cells[rowStartingCell, i] = table.Columns[i - 1].ColumnName;
                     }
 
                     for (int j = 0; j < table.Rows.Count; j++)
                     {
                         for (int k = 0; k < table.Columns.Count; k++)
                         {
-                            excelWorksheet.Cells[j + 2, k + 1] = table.Rows[j].ItemArray[k].ToString();
+                            excelWorksheet.Cells[j + rowStartingCell + 1, k + 1] = table.Rows[j].ItemArray[k].ToString();
                         }
                     }
 
                     // To resize columns
-                    excelCellrange = excelWorksheet.Range[excelWorksheet.Cells[1, 1], excelWorksheet.Cells[table.Rows.Count, table.Columns.Count]];
+                    excelCellrange = excelWorksheet.Range[excelWorksheet.Cells[rowStartingCell, 1], excelWorksheet.Cells[table.Rows.Count, table.Columns.Count]];
                     excelCellrange.EntireColumn.AutoFit();
 
+                    //To display worksheet header
+                    if (rowStartingCell == 4)
+                    {
+                        excelCellrange = excelWorksheet.Range[excelWorksheet.Cells[2, 1], excelWorksheet.Cells[2, table.Columns.Count]];
+                        FormattingExcelCells(excelCellrange, "#EBEADC", System.Drawing.Color.RosyBrown, true);
+                        excelWorksheet.Cells[2, 1] = useCaseHeader;
+                    }
+
                     //To format column headers
-                    excelCellrange = excelWorksheet.Range[excelWorksheet.Cells[1, 1], excelWorksheet.Cells[1, table.Columns.Count]];
+                    excelCellrange = excelWorksheet.Range[excelWorksheet.Cells[rowStartingCell, 1], excelWorksheet.Cells[1, table.Columns.Count]];
                     FormattingExcelCells(excelCellrange, true);
 
                 }
@@ -93,6 +103,17 @@ namespace TradeMessageGenerator
             if (IsFontbold == true)
             {
                 range.Font.Bold = IsFontbold;
+            }
+        }
+
+        private static void FormattingExcelCells(Microsoft.Office.Interop.Excel.Range range, string HTMLcolorCode, System.Drawing.Color fontColor, bool IsFontbool)
+        {
+            range.Interior.Color = System.Drawing.ColorTranslator.FromHtml(HTMLcolorCode);
+            range.Font.Color = System.Drawing.ColorTranslator.ToOle(fontColor);
+            range.Merge();
+            if (IsFontbool == true)
+            {
+                range.Font.Bold = IsFontbool;
             }
         }
 

@@ -38,90 +38,96 @@ namespace TradeMessageGenerator
             //Get name of the columns which needs to be fill at runtime
             columnsBasedOnPeriod = getColumnNames(AppSettings.RuntimeValuesForColumns);
 
-            //Create a DataSet with the existing DataTables
-            DataSet ds = new DataSet(DataSetName);
-
             #region List 1 --> DSWP 3M LIBOR Benchmark trade with Effective date in the past and future
 
+            string useCaseHeader = "List 1 --> DSWP 3M LIBOR Benchmark trade with Effective date in the past and future";
             int useCaseNumber = 1;
             bool isDefault = true;
             string indexTenor = "3M";
             bool isBrokenDatedTrade = false;
             bool generatestubData = false;
             bool generateRollsOnData = false;
-            FillDataTable(useCaseNumber, isDefault, isBrokenDatedTrade, indexTenor, ds, generatestubData, generateRollsOnData);
+            FillDataTable(useCaseNumber, useCaseHeader, isDefault, isBrokenDatedTrade, indexTenor, generatestubData, generateRollsOnData);
             useCaseNumber++;
 
             #endregion
 
             #region List 2 --> DSWP 6M LIBOR Benchmark trade with Effective date in the past and future
 
+            useCaseHeader = "List 2 --> DSWP 6M LIBOR Benchmark trade with Effective date in the past and future";
             indexTenor = "6M";
-            FillDataTable(useCaseNumber, isDefault, isBrokenDatedTrade, indexTenor, ds, generatestubData, generateRollsOnData);
+            FillDataTable(useCaseNumber, useCaseHeader, isDefault, isBrokenDatedTrade, indexTenor, generatestubData, generateRollsOnData);
             useCaseNumber++;
 
             #endregion
 
             #region List 3 --> DSWP 3M LIBOR broken dated trades with no stubs provided by user
 
+            useCaseHeader = "List 3 --> DSWP 3M LIBOR broken dated trades with no stubs provided by user";
             indexTenor = "3M";
             isBrokenDatedTrade = true;
-            FillDataTable(useCaseNumber, isDefault, isBrokenDatedTrade, indexTenor, ds, generatestubData, generateRollsOnData);
+            FillDataTable(useCaseNumber, useCaseHeader, isDefault, isBrokenDatedTrade, indexTenor, generatestubData, generateRollsOnData);
             useCaseNumber++;
 
             #endregion
 
             #region List 4 --> DSWP 3M LIBOR broken dated trades with Short Initial Stub provided by user
 
+            useCaseHeader = "List 4 --> DSWP 3M LIBOR broken dated trades with Short Initial Stub provided by user";
             isBrokenDatedTrade = true;
             generatestubData = true;
-            FillDataTable(useCaseNumber, isDefault, isBrokenDatedTrade, indexTenor, ds, generatestubData, generateRollsOnData);
+            FillDataTable(useCaseNumber, useCaseHeader, isDefault, isBrokenDatedTrade, indexTenor, generatestubData, generateRollsOnData);
             useCaseNumber++;
 
             #endregion
 
             #region List 5 --> DSWP 3M LIBOR broken dated trades with Long Initial Stub provided by user
 
+            useCaseHeader = "List 5 --> DSWP 3M LIBOR broken dated trades with Long Initial Stub provided by user";
             isBrokenDatedTrade = true;
             generatestubData = true;
-            FillDataTable(useCaseNumber, isDefault, isBrokenDatedTrade, indexTenor, ds, generatestubData, generateRollsOnData);
+            FillDataTable(useCaseNumber, useCaseHeader, isDefault, isBrokenDatedTrade, indexTenor, generatestubData, generateRollsOnData);
             useCaseNumber++;
 
             #endregion
 
             #region List 6 --> DSWP 3M LIBOR with different Rolls On
 
+            useCaseHeader = "List 6 --> DSWP 3M LIBOR with different Rolls On";
             isBrokenDatedTrade = false;
             generatestubData = false;
             generateRollsOnData = true;
-            FillDataTable(useCaseNumber, isDefault, isBrokenDatedTrade, indexTenor, ds, generatestubData, generateRollsOnData);
+            FillDataTable(useCaseNumber, useCaseHeader, isDefault, isBrokenDatedTrade, indexTenor, generatestubData, generateRollsOnData);
             useCaseNumber++;
 
             #endregion
 
             #region List 7--> DSWP 3M LIBOR with some fields different from default
 
+            useCaseHeader = "List 7--> DSWP 3M LIBOR with some fields different from default";
             isBrokenDatedTrade = false;
             generatestubData = false;
             generateRollsOnData = false;
             isDefault = false;
-            FillDataTable(useCaseNumber, isDefault, isBrokenDatedTrade, indexTenor, ds, generatestubData, generateRollsOnData);
+            FillDataTable(useCaseNumber, useCaseHeader, isDefault, isBrokenDatedTrade, indexTenor, generatestubData, generateRollsOnData);
             useCaseNumber++;
 
             #endregion
 
-            string fullFileName = Path.Combine(AppSettings.DirectoryName, string.Format("{0}_SampleFile_{1}{2}{3}.xlsx", DataSetName, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Year));
-            ExcelFileGenerator.CreateExcel(ds, fullFileName);
+
 
         }
-        
+
         #endregion
 
         #region Private Methods
 
-        private void FillDataTable(int useCaseNumber, bool isDefault, bool isBrokenDatedTrade, string indexTenor, DataSet ds, bool generateStubData, bool generateRollsOnData)
+        private void FillDataTable(int useCaseNumber, string useCaseHeader, bool isDefault, bool isBrokenDatedTrade, string indexTenor, bool generateStubData, bool generateRollsOnData)
         {
-            string excelWorksheetName = string.Format("DSWP_{0}_LIBOR_{1}_{2}", indexTenor, DateTime.Now.Minute, useCaseNumber);
+            //Create a DataSet with the existing DataTables
+            DataSet ds = new DataSet(DataSetName);
+
+            string excelWorksheetName = string.Format("DSWP_{0}_LIBOR_{1}", indexTenor, useCaseNumber);
             DataTable dataTable = new DataTable(excelWorksheetName);
 
             foreach (var columnName in columns)
@@ -147,6 +153,8 @@ namespace TradeMessageGenerator
                 dataTable.Rows.Add(row);
             }
             ds.Tables.Add(dataTable);
+            string fullFileName = Path.Combine(AppSettings.DirectoryName, string.Format("{0}_SampleFile_{1}_{2}{3}{4}.xlsx", DataSetName, useCaseNumber, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Year));
+            ExcelFileGenerator.CreateExcel(ds, fullFileName, useCaseHeader);
         }
 
         private List<string> getColumnNames(string appSettingValue)
@@ -164,7 +172,7 @@ namespace TradeMessageGenerator
             switch (colName)
             {
                 case "Full Notional":
-                    int fullNotional = new Random().Next(5000, 10000) + forloopIndex;
+                    int fullNotional = new Random().Next(5000, 10000) + (forloopIndex * forloopIndex);
                     return fullNotional.ToString();
                 case "Effective Date":
                     if ((forloopIndex + 1) % 2 == 0)
@@ -204,7 +212,8 @@ namespace TradeMessageGenerator
                     var rateSpread = new List<string> { "2.0786", "1.0786", "1.11", "1.023", "2.233", "1.536", "2.232", "1.122", "1.05", "1.027", "2.444", "1.555" };
                     int index = new Random().Next(0, rateSpread.Count - 1);
                     return rateSpread[index];
-                case "BuySell": if (forloopIndex % 2 == 0)
+                case "BuySell":
+                    if (forloopIndex % 2 == 0)
                     {
                         return "P";
                     }
@@ -407,7 +416,8 @@ namespace TradeMessageGenerator
                 //case "Float Calc Freq": return "";
                 //case "Float Coupon Freq": return "";
                 case "Fixed Coupon Freq":
-                case "Fixed Calc Freq": if (isDefault)
+                case "Fixed Calc Freq":
+                    if (isDefault)
                     {
                         return "6M";
                     }
