@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TradeMessageGenerator
 {
@@ -13,5 +9,7 @@ namespace TradeMessageGenerator
         public static string RuntimeValuesForColumns { get { return ConfigurationManager.AppSettings["runtimeValuesForColumns"]; } }
         public static string DirectoryName { get { return ConfigurationManager.AppSettings["directoryName"]; } }
         public static int NumberOfRecords { get { return Convert.ToInt32(ConfigurationManager.AppSettings["numberOfRecords"]); } }
+        public static string KeysToIngnor { get { return ConfigurationManager.AppSettings["keysToIngnor"]; } }
+        public static string DirectoryToMonitor { get { return ConfigurationManager.AppSettings["directoryToMonitor"]; } }
     }
 }

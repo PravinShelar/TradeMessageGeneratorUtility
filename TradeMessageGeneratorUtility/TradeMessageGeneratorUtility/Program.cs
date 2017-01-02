@@ -1,15 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using System.Xml;
 
 namespace TradeMessageGenerator
 {
     static class Program
     {
+        //To redirect messages to commadline window
+        [DllImport("kernel32.dll")]
+        private static extern bool AttachConsole(int dwProcessId);
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -22,39 +23,58 @@ namespace TradeMessageGenerator
             //Invoked by a automation script
             if (args != null && args.Length > 0)
             {
-                //GenerateTradeMessage(args);
-                if (args[0] == "Generate")
+                if (args.Length==1 && args[0].ToLower() == "/generate")
                 {
                     if (Directory.Exists(AppSettings.DirectoryName))
                     {
                         TradeMessage tMsg = new TradeMessage();
                         tMsg.GenerateCombination();
+                        AttachConsole(-1);
+                        Console.WriteLine("Successfully generated sample trade messages.");
+                        Console.WriteLine();
                     }
-                    else
-                    {
-                        // MessageBox.Show("Invalid Command Line Argument.");
-                    }
+
                 }
+                else if (args.Length == 1 && args[0].ToLower() == "/compare")
+                {
+                    if (Directory.Exists(AppSettings.DirectoryToMonitor))
+                    {
+                        TradeMessage tMsg = new TradeMessage();
+                        tMsg.CompareLogMessages();
+                        AttachConsole(-1);
+                        Console.WriteLine("Successfully compared all trade messages.");
+                        Console.WriteLine();
+                    }
+
+                }
+                else
+                {
+                    AttachConsole(-1);
+                    Console.WriteLine("Invalid Commandline Arguments.");
+                    Console.WriteLine("Please use below parameters to process further,");
+                    Console.WriteLine("1. /generate : To generate sample data");
+                    Console.WriteLine("2. /compare : To compare log messages");
+                    Console.WriteLine();
+                }
+
             }
             else
             {
                 //User wants to generate trades through UI
-                //Application.Run(new MainUI());
-                if (Directory.Exists(AppSettings.DirectoryName))
+                if (Directory.Exists(AppSettings.DirectoryToMonitor))
                 {
-                    TradeMessage tMsg = new TradeMessage();
-                    tMsg.GenerateCombination();
+                    Application.Run(new CompareWindow());
                 }
             }
         }
 
-        public static void GenerateTradeMessage(string[] argsList)
-        {
-            var trademessages = new List<TradeMessage>();
-            trademessages.Add(new TradeMessage());
+        //public static void GenerateTradeMessage(string[] argsList)
+        //{
+        //    var trademessages = new List<TradeMessage>();
+        //    trademessages.Add(new TradeMessage());
 
-            TradeMessage tMsg = new TradeMessage();
-            //tMsg.fullNotional = 0;
-        }
+        //    TradeMessage tMsg = new TradeMessage();
+        //    //tMsg.fullNotional = 0;
+        //}
     }
 }

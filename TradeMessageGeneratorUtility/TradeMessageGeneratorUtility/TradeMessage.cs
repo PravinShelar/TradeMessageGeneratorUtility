@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Data;
-using System.Threading.Tasks;
-using System.Configuration;
 using System.IO;
 
 namespace TradeMessageGenerator
@@ -15,6 +12,9 @@ namespace TradeMessageGenerator
 
         public const string DateFormat = "MM/dd/yyyy";
         public const string DataSetName = "TradeWeb";
+        public const Char sohValue = '\u0001';
+        public const Char keyValuePairSeparator = '=';
+        public const Char configValueSeparator = ',';
 
         #endregion
 
@@ -23,6 +23,7 @@ namespace TradeMessageGenerator
         private List<string> columns = null;
         private List<string> columnsBasedOnPeriod = null;
 
+        private static readonly Random random = new Random();
         #endregion
 
         #region Public Methods
@@ -115,6 +116,103 @@ namespace TradeMessageGenerator
             #endregion
 
 
+        }
+
+        public void CompareLogMessages()
+        {
+            string serverName = "stg01";
+            string anotherServerName = "stg51";
+            var files = Directory.GetFiles(AppSettings.DirectoryToMonitor, string.Format("{0}_*.txt", serverName));
+            foreach (var file in files)
+            {
+                string filepath = file;
+                string filepath2 = Path.Combine(AppSettings.DirectoryToMonitor, Path.GetFileName(file).Replace(serverName, anotherServerName));
+
+                if (File.Exists(filepath2))
+                {
+                    List<string> outputLines = new List<string>();
+                    string[] keyValuePairOfFirstFile = null, keyValuePairOfSecondFile = null;
+                    var contentsOne = File.ReadAllText(filepath);
+                    if (!string.IsNullOrEmpty(contentsOne))
+                    {
+                        keyValuePairOfFirstFile = contentsOne.Split(sohValue);
+                    }
+
+                    var contentsTwo = File.ReadAllText(filepath2);
+                    if (!string.IsNullOrEmpty(contentsTwo))
+                    {
+                        keyValuePairOfSecondFile = contentsTwo.Split(sohValue);
+                    }
+
+                    if (keyValuePairOfFirstFile != null && keyValuePairOfSecondFile != null)
+                    {
+                        int numberOfDifferences = 0;
+                        List<string> keysToIgnor = new List<string>(AppSettings.KeysToIngnor.Split(configValueSeparator));
+
+                        // Number of key value pairs in both files should be same.
+                        var tradeValues = getTradeCodeValues();
+                        if (keyValuePairOfFirstFile.Length == keyValuePairOfSecondFile.Length)
+                        {
+                            for (int i = 1; i < keyValuePairOfSecondFile.Length; i++)
+                            {
+                                //Sequence of key value pairs in both files should be same.
+                                //Console.WriteLine(string.Format("{0} - {1}",keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim(), keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[1].Trim()));
+                                if (string.Equals(keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim(), keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[0].Trim()))
+                                {
+                                    if (!keysToIgnor.Contains(keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim()))
+                                    {
+                                        if (!string.Equals(keyValuePairOfFirstFile[i], keyValuePairOfSecondFile[i]))
+                                        {
+                                            numberOfDifferences++;
+                                            string fileOneValue = string.Empty;
+                                            int fileOneKey = Convert.ToInt32(keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim());
+                                            if (tradeValues.ContainsKey(fileOneKey))
+                                            {
+                                                fileOneValue = string.Format("({0}) {1}", fileOneKey, tradeValues[fileOneKey]);
+                                            }
+                                            else
+                                            {
+                                                fileOneValue = fileOneKey.ToString();
+                                            }
+
+                                            string fileTwoValue = string.Empty;
+                                            int fileTwoKey = Convert.ToInt32(keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[0].Trim());
+                                            if (tradeValues.ContainsKey(fileTwoKey))
+                                            {
+                                                fileTwoValue = string.Format("({0}) {1}", fileTwoKey, tradeValues[fileTwoKey]);
+                                            }
+                                            else
+                                            {
+                                                fileTwoValue = fileTwoKey.ToString();
+                                            }
+
+                                            //Console.WriteLine(string.Format("{0}. First File - [{1} : {2}], Second File - [{3} : {4}]", numberOfDifferences, fileOneValue, keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[1].Trim(), fileTwoValue, keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[1].Trim()));
+                                            outputLines.Add(string.Format("{0}. First File - [{1} : {2}], Second File - [{3} : {4}]", numberOfDifferences, fileOneValue, keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[1].Trim(), fileTwoValue, keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[1].Trim()));
+                                        }
+                                    }
+                                }
+                                //else
+                                //{
+                                //    Console.WriteLine(string.Format("Files are not in proper sequence: {0}, {1}", keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim(), keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[0].Trim()));
+                                //}
+                            }
+                        }
+                        //else
+                        //{
+                        //    Console.WriteLine("Need to check if this is valid scenario");
+                        //}
+
+                        outputLines.Add("\n");
+                        outputLines.Add(string.Format("Number of differences in both Files = {0}", numberOfDifferences));
+
+                    }
+                    //Write output file
+                    string outputfileName = Path.GetFileName(file).Replace(serverName, "CompareResult_");
+                    File.WriteAllLines(Path.Combine(AppSettings.DirectoryToMonitor, outputfileName), outputLines.ToArray());
+                }
+
+            }
+            Console.ReadLine();
 
         }
 
@@ -137,7 +235,7 @@ namespace TradeMessageGenerator
 
             for (int i = 0; i < AppSettings.NumberOfRecords; i++)
             {
-                int periodInYears = new Random().Next(1, 6);
+                int periodInYears = random.Next(1, 6);
                 DataRow row = dataTable.NewRow();
                 foreach (var columnName in columns)
                 {
@@ -154,6 +252,7 @@ namespace TradeMessageGenerator
             }
             ds.Tables.Add(dataTable);
             string fullFileName = Path.Combine(AppSettings.DirectoryName, string.Format("{0}_SampleFile_{1}_{2}{3}{4}.xlsx", DataSetName, useCaseNumber, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Year));
+            //Commented to work Locally
             ExcelFileGenerator.CreateExcel(ds, fullFileName, useCaseHeader);
         }
 
@@ -172,7 +271,7 @@ namespace TradeMessageGenerator
             switch (colName)
             {
                 case "Full Notional":
-                    int fullNotional = new Random().Next(5000, 10000) + (forloopIndex * forloopIndex);
+                    int fullNotional = random.Next(5000, 100000);
                     return fullNotional.ToString();
                 case "Effective Date":
                     if ((forloopIndex + 1) % 2 == 0)
@@ -210,7 +309,11 @@ namespace TradeMessageGenerator
                     }
                 case "Rate/Spread":
                     var rateSpread = new List<string> { "2.0786", "1.0786", "1.11", "1.023", "2.233", "1.536", "2.232", "1.122", "1.05", "1.027", "2.444", "1.555" };
-                    int index = new Random().Next(0, rateSpread.Count - 1);
+                    int index = random.Next(0, rateSpread.Count);
+                    if (index == rateSpread.Count)
+                    {
+                        index = index - 1;
+                    }
                     return rateSpread[index];
                 case "BuySell":
                     if (forloopIndex % 2 == 0)
@@ -278,13 +381,16 @@ namespace TradeMessageGenerator
                         if (forloopIndex % 2 == 0 && forloopIndex < 8)
                         {
                             List<string> rollsOnData = new List<string>() { "EOM", "IMM" };
-                            int i = new Random().Next(0, rollsOnData.Count - 1);
+                            int i = random.Next(0, rollsOnData.Count);
+                            if (i == rollsOnData.Count)
+                            {
+                                i = i - 1;
+                            }
                             return rollsOnData[i];
                         }
                         else
                         {
-                            int rollsOn = new Random().Next(1, 29) + forloopIndex;
-                            return rollsOn.ToString();
+                            return random.Next(1, 30).ToString();
                         }
                     }
                 default: return string.Empty;
@@ -351,7 +457,11 @@ namespace TradeMessageGenerator
                     else
                     {
                         var fixedPayCenters = new List<string> { "GBLO", "USNY" };
-                        int index = new Random().Next(0, fixedPayCenters.Count - 1);
+                        int index = random.Next(0, fixedPayCenters.Count);
+                        if (index == fixedPayCenters.Count)
+                        {
+                            index = index - 1;
+                        }
                         return fixedPayCenters[index];
                     }
 
@@ -411,7 +521,6 @@ namespace TradeMessageGenerator
                 case "Float Stub End Tenor":
                     return string.Empty;
 
-
                 //case "Reset Freq": return "";//Same as Index Tenor
                 //case "Float Calc Freq": return "";
                 //case "Float Coupon Freq": return "";
@@ -427,6 +536,195 @@ namespace TradeMessageGenerator
                     };
                 default: return string.Empty;
             }
+        }
+
+        private Dictionary<int, string> getTradeCodeValues()
+        {
+            var tradeValues = new Dictionary<int, string>()
+            {
+                [9] = "BodyLength",
+                [35] = "MsgType",
+                [34] = "MsgSeqNum",
+                [49] = "SenderCompID",
+                [52] = "SendingTime",
+                [56] = "TargetCompID",
+                [58] = "Text",
+                [131] = "QuoteReqID",
+                [146] = "NoRelatedSym",
+                [55] = "Symbol",
+                [48] = "SecurityID",
+                [22] = "SecurityIDSource",
+                [460] = "Product",
+                [167] = "SecurityType",
+                [762] = "SecuritySubType",
+                [541] = "MaturityDate",
+                [1184] = "SecurityXMLLen",
+                [1185] = "SecurityXML",
+                [1186] = "SecurityXMLSchema",
+                [54] = "Side",
+                [38] = "OrderQty",
+                [64] = "SettlDate",
+                [15] = "Currency",
+                [60] = " TransactTime",
+                [221] = "BenchmarkCurveName",
+                [222] = "BenchmarkCurvePoint",
+                [423] = "PriceType",
+                [66] = "ListID",
+                [75] = "TradeDate",
+                [828] = "TrdType",
+                [10] = "CheckSum",
+                [453] = "NoPartyIDs",
+                [448] = "PartyID",
+                [447] = "PartyIDSource",
+                [452] = "PartyRole",
+                [802] = "NoPartySubIDs",
+                [523] = "PartySubID",
+                [803] = "PartySubIDType",
+                [20077] = "BookName",
+                [20078] = "TraderList",
+                [20079] = "TimeoutPeriod",
+                [22001] = "NettingTradeID",
+                [22005] = "CertaintyOfClearing",
+                [20184] = "ClearingCategory",
+                [5023] = "TickSize",
+                [6847] = "TotalNumOfParts",
+                [6849] = "PartNum",
+                [20086] = "NoOfDealers",
+                [20074] = "CanRespond",
+                [20075] = "CanQuote",
+                [20081] = "QuoteTimePeriod",
+                [20090] = "DueinTimePeriod",
+                [5745] = "MultipleTickets",
+                [20000] = "FloatRateDayCount",
+                [5722] = "FixedRatePayFrequency",
+                [5775] = "FixedRateDayCount",
+                [20095] = "OriginalPriceType",
+                [20096] = "OrigianlPrice",
+                [20097] = "DeltaRisk",
+                [20073] = "NegotiationType",
+                [20076] = "CanRequote",
+                [22646] = "AdjustedStartDate",
+                [20212] = "OnSEF",
+                [22647] = "TwCalcNPV",
+                [22552] = "PositionNettingTrade",
+                [22510] = "FixedRateCALCFQ",
+                [22512] = "FixedRatePAYRELTO",
+                [22516] = "FixedRatePDTCTR",
+                [22520] = "FixedRateCDTCTR",
+                [22514] = "FixedRateADJDTPD",
+                [22518] = "FixedRateADJDTCP",
+                [22522] = "FloatRateCALCFQ",
+                [22524] = "FloatRatePAYRELTO",
+                [22526] = "FloatRateADJDTPD",
+                [22528] = "FloatRatePDTCTR",
+                [22532] = "FloatRateADJDTCP",
+                [22534] = "FloatRateCDTCTR",
+                [22536] = "FloatRateRESFREQ",
+                [22538] = "FloatRateRESRELTO",
+                [22540] = "FloatRateADJDTRES",
+                [22542] = "FloatRateRDTCTR",
+                [22544] = "FloatRateRESDAYS",
+                [22546] = "FloatRateFDTYP",
+                [22548] = "FloatRateFXDCONV",
+                [22550] = "FloatRateFDTCTR",
+                [523] = "PartySubID",
+                [803] = "PartySubIDType",
+            };
+
+            #region Trade Values
+
+            //9 BodyLength
+            //35 MsgType
+            //34 MsgSeqNum
+            //49 SenderCompID
+            //52 SendingTime
+            //56 TargetCompID
+            //58 Text
+            //131 QuoteReqID
+            //146 NoRelatedSym
+            //55 Symbol
+            //48 SecurityID
+            //22 SecurityIDSource
+            //460 Product
+            //167 SecurityType
+            //762 SecuritySubType
+            //541 MaturityDate
+            //1184 SecurityXMLLen
+            //1185 SecurityXML
+            //1186 SecurityXMLSchema
+            //54 Side
+            //38 OrderQty
+            //64 SettlDate
+            //15 Currency
+            //60 TransactTime
+            //221 BenchmarkCurveName
+            //222 BenchmarkCurvePoint
+            //423 PriceType
+            //66 ListID
+            //75 TradeDate
+            //828 TrdType
+            //10 CheckSum
+            //453 NoPartyIDs
+            //448 PartyID
+            //447 PartyIDSource
+            //452 PartyRole
+            //802 NoPartySubIDs
+            //523 PartySubID
+            //803 PartySubIDType
+            //20077,BookName
+            //20078,TraderList
+            //20079,TimeoutPeriod
+            //22001,NettingTradeID
+            //22005,CertaintyOfClearing
+            //20184,ClearingCategory
+            //5023,TickSize
+            //6847,TotalNumOfParts
+            //6849, PartNum
+            //20086, NoOfDealers
+            //20074, CanRespond
+            //20075,CanQuote
+            //20081,QuoteTimePeriod
+            //20090,DueinTimePeriod
+            //5745,MultipleTickets
+            //20000,FloatRateDayCount
+            //5722,FixedRatePayFrequency
+            //5775,FixedRateDayCount
+            //20095,OriginalPriceType
+            //20096,OrigianlPrice
+            //20097,DeltaRisk
+            //20073,NegotiationType
+            //20076,CanRequote
+            //22646,AdjustedStartDate
+            //20212,OnSEF
+            //22647,TwCalcNPV
+            //22552,PositionNettingTrade
+            //22510,FixedRateCALCFQ
+            //22512,FixedRatePAYRELTO
+            //22516,FixedRatePDTCTR
+            //22520,FixedRateCDTCTR
+            //22514,FixedRateADJDTPD
+            //22518,FixedRateADJDTCP
+            //22522,FloatRateCALCFQ
+            //22524,FloatRatePAYRELTO
+            //22526,FloatRateADJDTPD
+            //22528,FloatRatePDTCTR
+            //22532,FloatRateADJDTCP
+            //22534,FloatRateCDTCTR
+            //22536,FloatRateRESFREQ
+            //22538,FloatRateRESRELTO
+            //22540,FloatRateADJDTRES
+            //22542,FloatRateRDTCTR
+            //22544,FloatRateRESDAYS
+            //22546,FloatRateFDTYP
+            //22548,FloatRateFXDCONV
+            //22550,FloatRateFDTCTR
+            //523,PartySubID
+            //803,PartySubIDType
+
+            #endregion
+
+            return tradeValues;
+
         }
 
         #endregion
