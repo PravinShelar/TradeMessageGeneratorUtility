@@ -120,99 +120,103 @@ namespace TradeMessageGenerator
 
         public void CompareLogMessages()
         {
+            var folders = Directory.GetDirectories(AppSettings.DirectoryToMonitor);
             string serverName = "stg01";
             string anotherServerName = "stg51";
-            var files = Directory.GetFiles(AppSettings.DirectoryToMonitor, string.Format("{0}_*.txt", serverName));
-            foreach (var file in files)
+
+            foreach (var folder in folders)
             {
-                string filepath = file;
-                string filepath2 = Path.Combine(AppSettings.DirectoryToMonitor, Path.GetFileName(file).Replace(serverName, anotherServerName));
-
-                if (File.Exists(filepath2))
+                var files = Directory.GetFiles(folder, string.Format("{0}_*.txt", serverName));
+                foreach (var file in files)
                 {
-                    List<string> outputLines = new List<string>();
-                    string[] keyValuePairOfFirstFile = null, keyValuePairOfSecondFile = null;
-                    var contentsOne = File.ReadAllText(filepath);
-                    if (!string.IsNullOrEmpty(contentsOne))
-                    {
-                        keyValuePairOfFirstFile = contentsOne.Split(sohValue);
-                    }
+                    string filepath = file;
+                    string filepath2 = Path.Combine(folder, Path.GetFileName(file).Replace(serverName, anotherServerName));
 
-                    var contentsTwo = File.ReadAllText(filepath2);
-                    if (!string.IsNullOrEmpty(contentsTwo))
+                    if (File.Exists(filepath2))
                     {
-                        keyValuePairOfSecondFile = contentsTwo.Split(sohValue);
-                    }
-
-                    if (keyValuePairOfFirstFile != null && keyValuePairOfSecondFile != null)
-                    {
-                        int numberOfDifferences = 0;
-                        List<string> keysToIgnor = new List<string>(AppSettings.KeysToIngnor.Split(configValueSeparator));
-
-                        // Number of key value pairs in both files should be same.
-                        var tradeValues = UtilityHelper.GetTradeCodeValues();
-                        if (keyValuePairOfFirstFile.Length == keyValuePairOfSecondFile.Length)
+                        List<string> outputLines = new List<string>();
+                        string[] keyValuePairOfFirstFile = null, keyValuePairOfSecondFile = null;
+                        var contentsOne = File.ReadAllText(filepath);
+                        if (!string.IsNullOrEmpty(contentsOne))
                         {
-                            for (int i = 1; i < keyValuePairOfSecondFile.Length; i++)
+                            keyValuePairOfFirstFile = contentsOne.Split(sohValue);
+                        }
+
+                        var contentsTwo = File.ReadAllText(filepath2);
+                        if (!string.IsNullOrEmpty(contentsTwo))
+                        {
+                            keyValuePairOfSecondFile = contentsTwo.Split(sohValue);
+                        }
+
+                        if (keyValuePairOfFirstFile != null && keyValuePairOfSecondFile != null)
+                        {
+                            int numberOfDifferences = 0;
+                            List<string> keysToIgnor = new List<string>(AppSettings.KeysToIngnor.Split(configValueSeparator));
+
+                            // Number of key value pairs in both files should be same.
+                            var tradeValues = UtilityHelper.GetTradeCodeValues();
+                            if (keyValuePairOfFirstFile.Length == keyValuePairOfSecondFile.Length)
                             {
-                                //Sequence of key value pairs in both files should be same.
-                                //Console.WriteLine(string.Format("{0} - {1}",keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim(), keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[1].Trim()));
-                                if (string.Equals(keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim(), keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[0].Trim()))
+                                for (int i = 1; i < keyValuePairOfSecondFile.Length; i++)
                                 {
-                                    if (!keysToIgnor.Contains(keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim()))
+                                    //Sequence of key value pairs in both files should be same.
+                                    //Console.WriteLine(string.Format("{0} - {1}",keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim(), keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[1].Trim()));
+                                    if (string.Equals(keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim(), keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[0].Trim()))
                                     {
-                                        if (!string.Equals(keyValuePairOfFirstFile[i], keyValuePairOfSecondFile[i]))
+                                        if (!keysToIgnor.Contains(keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim()))
                                         {
-                                            numberOfDifferences++;
-                                            string fileOneValue = string.Empty;
-                                            int fileOneKey = Convert.ToInt32(keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim());
-                                            if (tradeValues.ContainsKey(fileOneKey))
+                                            if (!string.Equals(keyValuePairOfFirstFile[i], keyValuePairOfSecondFile[i]))
                                             {
-                                                fileOneValue = string.Format("({0}) {1}", fileOneKey, tradeValues[fileOneKey]);
-                                            }
-                                            else
-                                            {
-                                                fileOneValue = fileOneKey.ToString();
-                                            }
+                                                numberOfDifferences++;
+                                                string fileOneValue = string.Empty;
+                                                int fileOneKey = Convert.ToInt32(keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim());
+                                                if (tradeValues.ContainsKey(fileOneKey))
+                                                {
+                                                    fileOneValue = string.Format("({0}) {1}", fileOneKey, tradeValues[fileOneKey]);
+                                                }
+                                                else
+                                                {
+                                                    fileOneValue = fileOneKey.ToString();
+                                                }
 
-                                            string fileTwoValue = string.Empty;
-                                            int fileTwoKey = Convert.ToInt32(keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[0].Trim());
-                                            if (tradeValues.ContainsKey(fileTwoKey))
-                                            {
-                                                fileTwoValue = string.Format("({0}) {1}", fileTwoKey, tradeValues[fileTwoKey]);
-                                            }
-                                            else
-                                            {
-                                                fileTwoValue = fileTwoKey.ToString();
-                                            }
+                                                string fileTwoValue = string.Empty;
+                                                int fileTwoKey = Convert.ToInt32(keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[0].Trim());
+                                                if (tradeValues.ContainsKey(fileTwoKey))
+                                                {
+                                                    fileTwoValue = string.Format("({0}) {1}", fileTwoKey, tradeValues[fileTwoKey]);
+                                                }
+                                                else
+                                                {
+                                                    fileTwoValue = fileTwoKey.ToString();
+                                                }
 
-                                            //Console.WriteLine(string.Format("{0}. First File - [{1} : {2}], Second File - [{3} : {4}]", numberOfDifferences, fileOneValue, keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[1].Trim(), fileTwoValue, keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[1].Trim()));
-                                            outputLines.Add(string.Format("{0}. First File - [{1} : {2}], Second File - [{3} : {4}]", numberOfDifferences, fileOneValue, keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[1].Trim(), fileTwoValue, keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[1].Trim()));
+                                                //Console.WriteLine(string.Format("{0}. First File - [{1} : {2}], Second File - [{3} : {4}]", numberOfDifferences, fileOneValue, keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[1].Trim(), fileTwoValue, keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[1].Trim()));
+                                                outputLines.Add(string.Format("{0}. First File - [{1} : {2}], Second File - [{3} : {4}]", numberOfDifferences, fileOneValue, keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[1].Trim(), fileTwoValue, keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[1].Trim()));
+                                            }
                                         }
                                     }
+                                    //else
+                                    //{
+                                    //    Console.WriteLine(string.Format("Files are not in proper sequence: {0}, {1}", keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim(), keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[0].Trim()));
+                                    //}
                                 }
-                                //else
-                                //{
-                                //    Console.WriteLine(string.Format("Files are not in proper sequence: {0}, {1}", keyValuePairOfFirstFile[i].Split(keyValuePairSeparator)[0].Trim(), keyValuePairOfSecondFile[i].Split(keyValuePairSeparator)[0].Trim()));
-                                //}
                             }
+                            //else
+                            //{
+                            //    Console.WriteLine("Need to check if this is valid scenario");
+                            //}
+
+                            outputLines.Add("\n");
+                            outputLines.Add(string.Format("Number of differences in both Files = {0}", numberOfDifferences));
+
                         }
-                        //else
-                        //{
-                        //    Console.WriteLine("Need to check if this is valid scenario");
-                        //}
-
-                        outputLines.Add("\n");
-                        outputLines.Add(string.Format("Number of differences in both Files = {0}", numberOfDifferences));
-
+                        //Write output file
+                        string outputfileName = Path.GetFileName(file).Replace(serverName, "CompareResult_");
+                        File.WriteAllLines(Path.Combine(folder, outputfileName), outputLines.ToArray());
                     }
-                    //Write output file
-                    string outputfileName = Path.GetFileName(file).Replace(serverName, "CompareResult_");
-                    File.WriteAllLines(Path.Combine(AppSettings.DirectoryToMonitor, outputfileName), outputLines.ToArray());
-                }
 
+                }
             }
-            Console.ReadLine();
 
         }
 
