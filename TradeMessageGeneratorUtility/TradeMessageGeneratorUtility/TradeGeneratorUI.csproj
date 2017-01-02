@@ -53,6 +53,7 @@
       <DependentUpon>CompareWindow.cs</DependentUpon>
     </Compile>
     <Compile Include="ExcelFileGenerator.cs" />
+    <Compile Include="UtilityHelper.cs" />
     <Compile Include="MainUI.cs">
       <SubType>Form</SubType>
     </Compile>
